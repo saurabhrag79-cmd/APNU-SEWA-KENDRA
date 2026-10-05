@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APNU SEWA KENDRA - Official Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <style>
+        :root { --primary: #1a73e8; --danger: #d93025; --success: #188038; --warning: #f29900; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f1f3f4; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .main-card { background: white; width: 100%; max-width: 700px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; padding-bottom: 20px; }
+        .header { background: var(--primary); color: white; padding: 20px; text-align: center; }
+        .logo-img-main { width: 80px; height: 80px; border-radius: 50%; background: white; padding: 3px; object-fit: contain; margin-bottom: 10px; }
+        .content { padding: 20px; }
+        label { font-weight: bold; display: block; margin-top: 10px; color: #333; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .price-tag { background: #e8f0fe; color: var(--primary); padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 15px; border: 1px solid var(--primary); }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-green { background: var(--success); color: white; }
+        #payment-page, #waiting-page, #print-page, #page-counter { display: none; }
+        .timer-clock { font-size: 22px; border: 2px solid var(--danger); display: inline-block; padding: 5px 20px; border-radius: 8px; margin-top: 5px; color: var(--danger); font-weight: bold; }
+        
+        .loader { border: 6px solid #f3f3f3; border-top: 6px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #print-page { 
+            border: 8px double var(--primary) !important; padding: 25px; background: #fff !important; position: relative; z-index: 1; overflow: hidden;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        #print-page::before {
+            content: ""; position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); width: 320px; height: 320px;
+            background-image: url('https://i.ibb.co/RpQ4b5dL/logo.png'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.12; z-index: 0;
+        }
+        .receipt-header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; }
+        .logo-l, .logo-r { width: 70px; height: 70px; object-fit: contain; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; position: relative; z-index: 2; }
+        .info-box { border: 1px solid #ddd; padding: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.7) !important; }
+        .info-box span { display: block; font-size: 10px; color: #666; font-weight: bold; text-transform: uppercase; }
+        .barcode-container { text-align: center; margin: 15px 0; position: relative; z-index: 2; }
+        #barcode { max-width: 100%; height: 50px; }
+        .footer-sig { margin-top: 25px; display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 2; }
+        .signature-img { width: 120px; height: auto; }
+        .payment-status { background: #e6f4ea; color: var(--success); padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin: 15px 0; border: 1px solid var(--success); }
+        @media print { .no-print { display: none !important; } body { padding: 0; } .main-card { box-shadow: none; border: none; width: 100%; } }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <div class="header no-print">
+        <img src="https://i.ibb.co/RpQ4b5dL/logo.png" class="logo-img-main" alt="Logo">
+        <h1 style="margin:0; font-size: 24px;">APNU SEWA KENDRA</h1>
+        <p style="margin:5px 0 0 0;">Digital sewa kendra |Saurabh kumar</p>
+    </div>
+
+    <div class="content">
+        <!-- 1. Form Page -->
+        <div id="details-page" class="no-print">
+            <label>आवेदक का नाम (Name)</label>
+            <input type="text" id="inpName" required placeholder="आवेदक का नाम दर्ज करें">
+            <label>पिता का नाम (Father's Name)</label>
+            <input type="text" id="inpFName" required placeholder="पिता का नाम दर्ज करें">
+            <label>मोबाइल नंबर (Mobile Number)</label>
+            <input type="number" id="inpMobile" required placeholder="मोबाइल नंबर दर्ज करें">
+            <label>आवेदन संख्या (Application ID)</label>
+            <input type="text" id="inpAppId" required placeholder="Application ID दर्ज करें">
+            
+            <label>सेवा का चयन करें (Select Service)</label>
+            <select id="inpDoc" onchange="updatePrice()">
+                <option value="स्थायी निवास प्रमाण पत्र" data-price="100">स्थायी निवास प्रमाण पत्र - ₹100</option>
+                <option value="जाति प्रमाण पत्र" data-price="100">जाति प्रमाण पत्र - ₹100</option>
+                <option value="चरित्र प्रमाण पत्र" data-price="100">चरित्र प्रमाण पत्र - ₹100</option>
+                <option value="पर्वतीय प्रमाण पत्र" data-price="100">पर्वतीय प्रमाण पत्र - ₹100</option>
+                <option value="आय प्रमाण पत्र" data-price="100">आय प्रमाण पत्र - ₹100</option>
+                <option value="नया परिवार जोड़ें" data-price="100">नया परिवार जोड़ें - ₹100</option>
+                <option value="परिवार संशोधन" data-price="100">परिवार संशोधन - ₹100</option>
+                <option value="परिवार रजिस्टर प्रतिलिपि" data-price="100">परिवार रजिस्टर प्रतिलिपि - ₹100</option>
+                <option value="रोजगार पंजीकरण" data-price="150">रोजगार पंजीकरण - ₹150</option>
+                <option value="पेन कार्ड"data-price="250">पेन कार्ड - ₹250</option>
+                <option value="वोटर कार्ड" data-price="100">वोटर कार्ड (Voter Card) - ₹100</option>
+                <option value="ऑनलाइन फॉर्म" data-price="100">ऑनलाइन फॉर्म (Online Form) - ₹100</option>
+                <option value="एनएसपी फॉर्म" data-price="100">एनएसपी फॉर्म (NSP Form) - ₹100</option>
+                <option value="राइटिंग पीडीएफ" data-price="10">राइटिंग पीडीएफ (Writing PDF) - ₹10/पेज</option>
+                <option value="पीडीएफ जनरेट" data-price="5">पीडीएफ जनरेट (PDF Generate) - ₹5/पेज</option>
+            </select>
+
+            <div id="page-counter">
+                <label>कुल पेज (No. of Pages)</label>
+                <input type="number" id="inpPages" value="1" min="1" oninput="updatePrice()">
+            </div>
+
+            <div class="price-tag">कुल शुल्क (Total Fee): ₹<span id="displayPrice">100</span></div>
+            <button type="button" class="btn btn-blue" onclick="goToPayment()">पेमेंट के लिए आगे बढ़ें</button>
+        </div>
+
+        <!-- 2. Payment Page -->
+        <div id="payment-page" class="no-print" style="text-align: center;">
+            <div class="timer-container">पेमेंट समय: <span class="timer-clock" id="timerDisplay">04:00</span></div>
+            <div style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 10px; margin-top: 10px;">
+                <img id="qrImg" style="width: 200px;" alt="QR Code">
+                <p style="font-weight: bold; margin-top: 5px;">UPI: saurabhraj6397@oksbi</p>
+                <p style="color: var(--danger); font-weight: bold;">राशि: ₹<span id="payAmount">0</span></p>
+            </div>
+            <label style="margin-top: 15px;">ट्रांजेक्शन आईडी (UPI Ref No.)</label>
+            <input type="text" id="inpTxn" placeholder="12-अंकों का Ref No. दर्ज करें">
+            <button type="button" class="btn btn-green" onclick="submitData()">सबमिट एवं सत्यापित करें</button>
+        </div>
+
+        <!-- 3. Waiting Page -->
+        <div id="waiting-page" class="no-print" style="text-align: center; padding: 30px 10px;">
+            <div class="loader"></div>
+            <h3 style="color: var(--primary); margin-bottom: 5px;">पेमेंट सत्यापन जारी है...</h3>
+            <p style="color: #666; font-size: 14px;">एडमिन द्वारा सत्यापन होते ही रसीद एवं दस्तावेज खुल जाएगा।</p>
+            <div style="background: #fff8e1; border: 1px solid #ffe082; padding: 10px; border-radius: 6px; display: inline-block; margin-top: 10px;">
+                <strong>Status:</strong> <span style="color: var(--warning); font-weight: bold;">PENDING APPROVAL</span>
+            </div>
+        </div>
+
+        <!-- 4. Receipt Page -->
+        <div id="print-page">
+            <div class="receipt-header">
+                <img src="https://i.ibb.co/RpQ4b5dL/logo.png" class="logo-l" alt="Logo Left">
+                <div class="receipt-title">
+                    <h2 style="margin:0; color:var(--primary)!important;">APNU SEWA KENDRA</h2>
+                    <p style="margin:2px 0; font-size:12px; font-weight:bold;">Common Service Center, Uttarakhand</p>
+                </div>
+                <img src="https://i.ibb.co/9kccDx8w/image.png" class="logo-r" alt="Logo Right">
+            </div>
+
+            <div class="barcode-container">
+                <svg id="barcode"></svg>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-box"><span>Name</span><strong id="resName"></strong></div>
+                <div class="info-box"><span>Father's Name</span><strong id="resFName"></strong></div>
+                <div class="info-box"><span>Application</span><strong id="resDoc"></strong></div>
+                <div class="info-box"><span>App ID</span><strong id="resAppId"></strong></div>
+                <div class="info-box"><span>Transaction ID</span><strong id="resTxn"></strong></div>
+                <div class="info-box"><span>Mobile</span><strong id="resMobile"></strong></div>
+                <div class="info-box" style="grid-column: span 2;"><span>Date & Time</span><strong id="resDate"></strong></div>
+            </div>
+
+            <div class="payment-status">भुगतान सत्यापित एवं सफल - राशि: ₹<span id="resPrice"></span></div>
+
+            <!-- Direct File Download Button -->
+            <div id="docDownloadBox" style="display: none; margin-top: 15px;">
+                <a id="btnDocDownload" href="#" download class="btn btn-green" style="text-decoration: none; display: block; text-align: center; box-sizing: border-box;">
+                    📥 अपना दस्तावेज (Document) डाउनलोड करें
+                </a>
+            </div>
+
+            <div class="footer-sig">
+                <div style="font-size: 10px; color: #666;">*Computer Generated Receipt</div>
+                <div style="text-align: center;">
+                    <img src="https://i.ibb.co/B2B4mjQT/sign-new.png" class="signature-img" alt="Signature"><br>
+                    <div style="border-top: 1px solid #000; width: 150px; padding-top: 5px; font-size: 13px; font-weight: bold;">Owner<br>Saurabh Kumar</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-blue no-print" onclick="window.print()">रसीद प्रिंट करें (Print Receipt)</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCDrVQM41SZoHAKEZDMtBYihJpUVZcJYx8",
+        authDomain: "apnu-sewa-kendra.firebaseapp.com",
+        databaseURL: "https://apnu-sewa-kendra-default-rtdb.firebaseio.com",
+        projectId: "apnu-sewa-kendra",
+        storageBucket: "apnu-sewa-kendra.firebasestorage.app",
+        messagingSenderId: "166197254815",
+        appId: "1:166197254815:web:377a2089cb3e71abdc20aa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.updatePrice = function() {
+        const select = document.getElementById('inpDoc');
+        const price = parseInt(select.options[select.selectedIndex].getAttribute('data-price'));
+        const val = select.value;
+        const pageBox = document.getElementById('page-counter');
+        if(val === "righting pdf" || val === "pdf generate" || val === "राइटिंग पीडीएफ" || val === "पीडीएफ जनरेट" || val === "Writing pdf" || val === "Pdf generate") {
+            pageBox.style.display = 'block';
+            const pages = document.getElementById('inpPages').value || 1;
+            document.getElementById('displayPrice').innerText = price * pages;
+        } else {
+            pageBox.style.display = 'none';
+            document.getElementById('displayPrice').innerText = price;
+        }
+    };
+
+    window.goToPayment = function() {
+        const name = document.getElementById('inpName').value.trim();
+        const appId = document.getElementById('inpAppId').value.trim();
+        if(!name || !appId) return alert("कृपया नाम और Application ID भरें");
+        
+        const finalPrice = document.getElementById('displayPrice').innerText;
+        document.getElementById('payAmount').innerText = finalPrice;
+        
+        const upiUri = `upi://pay?pa=saurabhraj6397@oksbi&pn=SaurabhKumar&am=${finalPrice}&cu=INR`;
+        document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+        
+        document.getElementById('details-page').style.display = 'none';
+        document.getElementById('payment-page').style.display = 'block';
+        startTimer();
+    };
+
+    function startTimer() {
+        let t = 240;
+        let timer = setInterval(() => {
+            if(t <= 0) { clearInterval(timer); return; }
+            t--;
+            let m = Math.floor(t/60), s = t%60;
+            document.getElementById('timerDisplay').innerText = `${m}:${s<10?'0'+s:s}`;
+        }, 1000);
+    }
+
+    window.submitData = function() {
+        const txn = document.getElementById('inpTxn').value.trim();
+        const appId = document.getElementById('inpAppId').value.trim();
+        const name = document.getElementById('inpName').value.trim();
+        const fName = document.getElementById('inpFName').value.trim();
+        const mobile = document.getElementById('inpMobile').value.trim();
+        const doc = document.getElementById('inpDoc').value;
+        const price = document.getElementById('displayPrice').innerText;
+        const date = new Date().toLocaleString('en-GB');
+
+        if(txn.length < 6) return alert("कृपया सही Transaction ID दर्ज करें");
+
+        document.getElementById('resName').innerText = name;
+        document.getElementById('resFName').innerText = fName;
+        document.getElementById('resMobile').innerText = mobile;
+        document.getElementById('resDoc').innerText = doc;
+        document.getElementById('resAppId').innerText = appId;
+        document.getElementById('resTxn').innerText = txn;
+        document.getElementById('resPrice').innerText = price;
+        document.getElementById('resDate').innerText = date;
+
+        JsBarcode("#barcode", appId, { format: "CODE128", width: 2, height: 40, displayValue: false });
+
+        const orderKey = `${appId}_${txn}`.replace(/[^a-zA-Z0-9]/g, "_");
+
+        const orderData = {
+            date: date, name: name, fName: fName, mobile: mobile,
+            appId: appId, doc: doc, price: price, txn: txn, status: "PENDING"
+        };
+
+        set(ref(db, 'requests/' + orderKey), orderData)
+            .then(() => {
+                document.getElementById('payment-page').style.display = 'none';
+                document.getElementById('waiting-page').style.display = 'block';
+                startCheckingFirebase(orderKey);
+            })
+            .catch((err) => {
+                console.error("Firebase Error:", err);
+                alert("Data save करने में दिक्कत आई। कृपया Firebase rules verify करें।");
+            });
+    };
+
+    function startCheckingFirebase(orderKey) {
+        const orderRef = ref(db, 'requests/' + orderKey);
+        
+        onValue(orderRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.status && data.status.toUpperCase() === "YES") {
+                document.getElementById('waiting-page').style.display = 'none';
+                document.getElementById('print-page').style.display = 'block';
+
+                if (data.docData) {
+                    const docBox = document.getElementById('docDownloadBox');
+                    const btnDoc = document.getElementById('btnDocDownload');
+                    
+                    btnDoc.href = data.docData;
+                    btnDoc.download = data.fileName || "Document.pdf";
+                    btnDoc.innerText = "📥 अपना दस्तावेज (Document) डाउनलोड करें";
+                    docBox.style.display = 'block';
+                }
+            } else if (data && data.status && data.status.toUpperCase() === "NO") {
+                alert("एडमिन द्वारा आपका भुगतान अस्वीकार (Reject) कर दिया गया है।");
+                location.reload();
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
